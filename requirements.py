@@ -5,3 +5,4 @@ lxml
 sympy
 rapidfuzz
 requests
+gTTS
