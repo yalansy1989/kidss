@@ -1,66 +1,80 @@
 # -*- coding: utf-8 -*-
-# المساعد الشخصي — تعليم الحروف العربية والإنجليزية + الأرقام + نطق تلقائي + اختبار تكوين جملة
+# المساعد الشخصي — تعليم الحروف العربية فقط (كبيرة + نطق تلقائي + أمثلة)
 
 import io, base64
 import streamlit as st
 from gtts import gTTS
 
-st.set_page_config(page_title="المساعد الشخصي — تعليم الحروف", page_icon="🎨", layout="wide")
+st.set_page_config(page_title="تعليم الحروف العربية", page_icon="🔤", layout="wide")
 
-# ========= ستايل طفولي لطيف =========
+# ---------- ستايل طفولي وبلاطات كبيرة ----------
 st.markdown("""
 <style>
 html, body { direction: rtl; }
 .stApp {
-  background: linear-gradient(135deg,#fff9f2 0%, #f3fffe 50%, #f4f7ff 100%);
+  background: linear-gradient(135deg,#fff9f2 0%, #f3fffe 55%, #f4f7ff 100%);
   background-attachment: fixed;
 }
 .block-container { padding-top: 1rem; }
-.kid-title{ text-align:center;font-weight:900;font-size:2.1rem; }
-.kid-card{ background:#ffffffd9;border:1px solid #eef1f6;border-radius:18px;padding:14px 16px;box-shadow:0 10px 26px rgba(0,0,0,.06); }
-.badge{ display:inline-block;margin:6px;padding:10px 14px;border-radius:14px;font-weight:800;border:1px solid rgba(0,0,0,.06);background:#fff; }
-.c1{background:#ffe9ec;} .c2{background:#e7f4ff;} .c3{background:#eaffe9;} .c4{background:#fff6d9;} .c5{background:#f4e9ff;}
-.grid7 > div{display:inline-block;margin:4px}
-audio{ width:100%; outline:none; }
+.title{ text-align:center;font-weight:900;font-size:2.2rem; margin-bottom:.6rem }
+.grid { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+.tile {
+  display:flex; align-items:center; justify-content:center;
+  width:92px; height:92px; border-radius:18px; font-size:2.2rem; font-weight:900;
+  border:1px solid #e9eef5; user-select:none; cursor:pointer;
+  box-shadow:0 10px 22px rgba(0,0,0,.06); transition:.12s transform ease;
+}
+.tile:active { transform: scale(.98); }
+.c1{background:#ffe9ec;} .c2{background:#e7f4ff;} .c3{background:#eaffe9;}
+.c4{background:#fff6d9;} .c5{background:#f4e9ff;}
+.card {
+  background:#ffffffdd; border:1px solid #eef1f6; border-radius:18px;
+  padding:16px 18px; box-shadow:0 10px 26px rgba(0,0,0,.06);
+}
+.examples b{display:inline-block; width:92px}
+.hidden-audio {height:0; overflow:hidden}
+@media (max-width: 640px){
+  .tile{ width:78px; height:78px; font-size:1.9rem }
+}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="kid-title">🎨 المساعد الشخصي — تعليم الحروف</div>', unsafe_allow_html=True)
-st.caption("انقر على أي حرف أو رقم لسماع نُطقه فورًا، وشاهد الأمثلة المناسبة لأول حرف. في الأسفل اختبار لتكوين جملة ونطقها.")
+st.markdown('<div class="title">🔤 تعليم الحروف العربية</div>', unsafe_allow_html=True)
+st.caption("اضغط أي حرف لسماع اسمه فورًا، وستظهر أمثلة تبدأ بنفس الحرف.")
 
-# ========= أدوات الصوت =========
+# ---------- TTS: نطق واضح مع سكون ----------
 @st.cache_resource(show_spinner=False)
-def tts_bytes(text: str, lang: str = "ar", slow: bool = False) -> bytes:
-    tts = gTTS(text=text, lang=lang, slow=slow)
+def tts_bytes(text: str) -> bytes:
+    # نستخدم أسماء الحروف بصيغة مشكّلة مع سكون لنُطق واضح
+    tts = gTTS(text=text, lang="ar", slow=True)  # slow=True لزيادة الوضوح للأطفال
     buf = io.BytesIO()
     tts.write_to_fp(buf)
     return buf.getvalue()
 
-def autoplay_audio(audio_bytes: bytes):
-    """تشغيل تلقائي عبر <audio autoplay> لتفادي ضغط زر التشغيل."""
+def autoplay(audio_bytes: bytes):
     b64 = base64.b64encode(audio_bytes).decode()
-    html_audio = f"""
-    <audio autoplay controls>
-      <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-    </audio>
-    """
-    st.markdown(html_audio, unsafe_allow_html=True)
+    st.markdown(
+        f"""<audio class="hidden-audio" autoplay>
+              <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+            </audio>""",
+        unsafe_allow_html=True
+    )
 
-# ========= بيانات الحروف والأرقام + أمثلة =========
-AR_LETTERS = [
-    ("أ","ألف"),("ب","باء"),("ت","تاء"),("ث","ثاء"),("ج","جيم"),("ح","حاء"),("خ","خاء"),
-    ("د","دال"),("ذ","ذال"),("ر","راء"),("ز","زاي"),("س","سين"),("ش","شين"),
-    ("ص","صاد"),("ض","ضاد"),("ط","طاء"),("ظ","ظاء"),("ع","عين"),("غ","غين"),
-    ("ف","فاء"),("ق","قاف"),("ك","كاف"),("ل","لام"),("م","ميم"),("ن","نون"),("هـ","هاء"),("و","واو"),("ي","ياء")
+# ---------- بيانات الحروف + أمثلة ----------
+LETTERS = [
+    ("أ","ألفْ"),("ب","باءْ"),("ت","تاءْ"),("ث","ثاءْ"),("ج","جيمْ"),("ح","حاءْ"),("خ","خاءْ"),
+    ("د","دالْ"),("ذ","ذالْ"),("ر","راءْ"),("ز","زايْ"),("س","سينْ"),("ش","شينْ"),
+    ("ص","صادْ"),("ض","ضادْ"),("ط","طاءْ"),("ظ","ظاءْ"),("ع","عينْ"),("غ","غينْ"),
+    ("ف","فاءْ"),("ق","قافْ"),("ك","كافْ"),("ل","لامْ"),("م","ميمْ"),("ن","نونْ"),
+    ("هـ","هاءْ"),("و","واوْ"),("ي","ياءْ")
 ]
 
-# أمثلة عربية لكل حرف: حيوان، طير، فاكهة، خضار، اسم شخص
-AR_EX = {
+EX = {
  "أ":{"animal":"أسد 🦁","bird":"أوز 🪿","fruit":"أناناس 🍍","veg":"أرضي شوكي 🌿","name":"أحمد"},
  "ب":{"animal":"بقرة 🐄","bird":"بط 🦆","fruit":"برتقال 🍊","veg":"باذنجان 🍆","name":"بسام"},
  "ت":{"animal":"تمساح 🐊","bird":"ترغل 🐦","fruit":"تفاح 🍎","veg":"تُرمس 🌱","name":"تيم"},
- "ث":{"animal":"ثعلب 🦊","bird":"ثُرَيّا (نستخدم طائر عام) 🐦","fruit":"ثوم 🧄","veg":"ثوم 🧄","name":"ثائر"},
- "ج":{"animal":"جمل 🐫","bird":"جَلم/طائر جارح 🦅","fruit":"جوافة 🍈","veg":"جزر 🥕","name":"جهاد"},
+ "ث":{"animal":"ثعلب 🦊","bird":"(طائر عام) 🐦","fruit":"ثوم 🧄","veg":"ثوم 🧄","name":"ثائر"},
+ "ج":{"animal":"جمل 🐫","bird":"(طائر جارح) 🦅","fruit":"جوافة 🍈","veg":"جزر 🥕","name":"جهاد"},
  "ح":{"animal":"حصان 🐎","bird":"حمامة 🕊️","fruit":"حبحب 🍉","veg":"حلبة 🌿","name":"حسن"},
  "خ":{"animal":"خروف 🐑","bird":"خُضيري 🐦","fruit":"خوخ 🍑","veg":"خس 🥬","name":"خالد"},
  "د":{"animal":"دب 🐻","bird":"دجاجة 🐔","fruit":"دراق 🍑","veg":"دُباء 🎃","name":"دلال"},
@@ -86,141 +100,51 @@ AR_EX = {
  "ي":{"animal":"يمامة 🕊️","bird":"يمامة 🕊️","fruit":"يوسفي 🍊","veg":"يقطين 🎃","name":"يوسف"},
 }
 
-EN_LETTERS = [chr(c) for c in range(ord('A'), ord('Z')+1)]
-EN_EX = {
- "A":{"animal":"Ant 🐜","bird":"Albatross 🐦","fruit":"Apple 🍎","veg":"Asparagus 🌿","name":"Adam"},
- "B":{"animal":"Bear 🐻","bird":"Bluebird 🐦","fruit":"Banana 🍌","veg":"Broccoli 🥦","name":"Bella"},
- "C":{"animal":"Cat 🐱","bird":"Crow 🐦","fruit":"Cherry 🍒","veg":"Carrot 🥕","name":"Chris"},
- # (نكتفي بنماذج… والبقية تُعرض بلا أمثلة إذا غير مذكورة)
-}
+# ---------- حالة التحديد ----------
+if "chosen" not in st.session_state:
+    st.session_state["chosen"] = None
 
-AR_NUMS = ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"]
-EN_NUMS = [str(i) for i in range(10)]
+# ---------- شبكة الحروف (بلاطات كبيرة فقط) ----------
+st.write("")  # مسافة صغيرة
+st.markdown('<div class="grid">', unsafe_allow_html=True)
 
-# ========= واجهة التبويبات =========
-tabs = st.tabs(["الحروف العربية", "Alphabet (A-Z)", "الأرقام العربية", "English Numbers", "اختبار تكوين جملة"])
+for i, (ltr, name) in enumerate(LETTERS):
+    color = f"c{(i%5)+1}"
+    # نستخدم form لكل بلاطة للحصول على حدث click نظيف
+    with st.form(f"f_{i}"):
+        st.markdown(f'<div class="tile {color}">{ltr}</div>', unsafe_allow_html=True)
+        clicked = st.form_submit_button("", use_container_width=True)
+        if clicked:
+            st.session_state["chosen"] = (ltr, name)
+            # تشغيل الصوت فورًا
+            try:
+                autoplay(tts_bytes(name))
+            except Exception:
+                pass
+st.markdown('</div>', unsafe_allow_html=True)
 
-# ----- تبويب: الحروف العربية -----
-with tabs[0]:
-    st.markdown('<div class="kid-card">', unsafe_allow_html=True)
-    st.subheader("الحروف العربية")
-    st.caption("اضغط على أي حرف لسماع اسم الحرف فورًا ومشاهدة الأمثلة.")
-    cols = st.columns(7)
-    if "ar_letter" not in st.session_state: st.session_state["ar_letter"] = None
-
-    # شبكة الحروف
-    for i, (ltr, name) in enumerate(AR_LETTERS):
-        with cols[i % 7]:
-            color = f"c{(i % 5)+1}"
-            st.markdown(f'<div class="badge {color}">{ltr}</div>', unsafe_allow_html=True)
-            if st.button(f"🔊 {ltr}", key=f"ar_{i}", help=f"سماع: {name}"):
-                st.session_state["ar_letter"] = (ltr, name)
-
-    # عرض الصوت + الأمثلة
-    chosen = st.session_state.get("ar_letter")
-    if chosen:
-        ltr, name = chosen
-        try:
-            autoplay_audio(tts_bytes(name, "ar", slow=False))
-        except Exception:
-            st.info("تعذّر تشغيل الصوت الآن.")
-        ex = AR_EX.get(ltr, None)
-        if ex:
-            st.markdown("**أمثلة تبدأ بنفس الحرف:**")
+# ---------- عرض الأمثلة بعد الضغط ----------
+chosen = st.session_state.get("chosen")
+st.write("")  # مسافة
+if chosen:
+    ltr, name = chosen
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        col1, col2 = st.columns([1,2], vertical_alignment="top")
+        with col1:
+            st.markdown(f"### الحرف: **{ltr}** — *{name}*")
+        with col2:
+            ex = EX.get(ltr, {})
+            st.markdown('<div class="examples">', unsafe_allow_html=True)
             st.markdown(
-                f"- 🐾 **حيوان:** {ex['animal']}\n"
-                f"- 🐦 **طير:** {ex['bird']}\n"
-                f"- 🍎 **فاكهة:** {ex['fruit']}\n"
-                f"- 🥕 **خضار:** {ex['veg']}\n"
-                f"- 👤 **اسم شخص:** {ex['name']}"
+                f"**🐾 حيوان:** {ex.get('animal','—')}  \n"
+                f"**🐦 طير:** {ex.get('bird','—')}  \n"
+                f"**🍎 فاكهة:** {ex.get('fruit','—')}  \n"
+                f"**🥕 خضار:** {ex.get('veg','—')}  \n"
+                f"**👤 اسم شخص:** {ex.get('name','—')}"
             )
-    st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-# ----- تبويب: الحروف الإنجليزية -----
-with tabs[1]:
-    st.markdown('<div class="kid-card">', unsafe_allow_html=True)
-    st.subheader("English Alphabet (A–Z)")
-    st.caption("Click a letter to hear its name and see simple examples.")
-    cols = st.columns(7)
-    if "en_letter" not in st.session_state: st.session_state["en_letter"] = None
-
-    for i, ltr in enumerate(EN_LETTERS):
-        with cols[i % 7]:
-            color = f"c{(i % 5)+1}"
-            st.markdown(f'<div class="badge {color}">{ltr}</div>', unsafe_allow_html=True)
-            if st.button(f"🔊 {ltr}", key=f"en_{i}", help=f"Hear: {ltr}"):
-                st.session_state["en_letter"] = ltr
-
-    chosen = st.session_state.get("en_letter")
-    if chosen:
-        try:
-            autoplay_audio(tts_bytes(chosen, "en", slow=False))
-        except Exception:
-            st.info("Audio unavailable.")
-        ex = EN_EX.get(chosen, None)
-        st.markdown("**Examples:**")
-        if ex:
-            st.markdown(
-                f"- 🐾 Animal: {ex['animal']}\n"
-                f"- 🐦 Bird: {ex['bird']}\n"
-                f"- 🍎 Fruit: {ex['fruit']}\n"
-                f"- 🥕 Vegetable: {ex['veg']}\n"
-                f"- 👤 Name: {ex['name']}"
-            )
-        else:
-            st.markdown("- (Add your own examples later)")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ----- تبويب: الأرقام العربية -----
-with tabs[2]:
-    st.markdown('<div class="kid-card">', unsafe_allow_html=True)
-    st.subheader("الأرقام العربية (٠–٩)")
-    cols = st.columns(10)
-    for i, num in enumerate(AR_NUMS):
-        with cols[i]:
-            st.markdown(f'<div class="badge c{(i%5)+1}" style="text-align:center;font-size:1.4rem">{num}</div>', unsafe_allow_html=True)
-            if st.button(f"🔊 {num}", key=f"ar_num_{i}"):
-                try:
-                    autoplay_audio(tts_bytes(num, "ar"))
-                except Exception:
-                    st.info("تعذّر تشغيل الصوت.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ----- تبويب: English Numbers -----
-with tabs[3]:
-    st.markdown('<div class="kid-card">', unsafe_allow_html=True)
-    st.subheader("English Numbers (0–9)")
-    cols = st.columns(10)
-    for i, num in enumerate(EN_NUMS):
-        with cols[i]:
-            st.markdown(f'<div class="badge c{(i%5)+1}" style="text-align:center;font-size:1.4rem">{num}</div>', unsafe_allow_html=True)
-            if st.button(f"🔊 {num}", key=f"en_num_{i}"):
-                try:
-                    autoplay_audio(tts_bytes(num, "en"))
-                except Exception:
-                    st.info("Audio unavailable.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ----- تبويب: اختبار تكوين جملة -----
-with tabs[4]:
-    st.markdown('<div class="kid-card">', unsafe_allow_html=True)
-    st.subheader("🧪 اختبار: كوّن جملة وانطقها")
-    lang = st.radio("لغة النطق:", ["العربية", "English"], horizontal=True)
-    sentence = st.text_area("اكتب جملة بسيطة هنا:", placeholder="مثال: أحبُ البرتقال 🍊", height=100)
-    col1, col2 = st.columns([1,2])
-    with col1:
-        if st.button("🔊 نطق الجملة"):
-            if sentence.strip():
-                try:
-                    autoplay_audio(tts_bytes(sentence, "ar" if lang == "العربية" else "en"))
-                except Exception:
-                    st.info("تعذّر تشغيل الصوت.")
-            else:
-                st.warning("اكتب جملة أولاً.")
-    with col2:
-        st.caption("نصيحة: استخدم كلمات من الأمثلة التي تعلّمها طفلك للتو ✨")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# فوتر
-st.caption("💡 لو حاب تضيف صورًا بدل النصوص أو بطاقات تفاعلية، نطوّرها في الإصدار القادم.")
+# ---------- فوتر ----------
+st.caption("نطق فصيح بأسماء الحروف مع سكون. لمزيد من الدقّة يمكن لاحقًا تبديل محرك الصوت بمحرك احترافي.")
